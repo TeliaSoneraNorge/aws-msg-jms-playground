@@ -1,0 +1,3 @@
+# aws-msg-jms-playground
+JMS access to Amazon SQS services
+more soon ....
