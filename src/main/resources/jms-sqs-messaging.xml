@@ -2,24 +2,38 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aws-context="http://www.springframework.org/schema/cloud/aws/context"
+       xmlns:aws-messaging="http://www.springframework.org/schema/cloud/aws/messaging"
        xsi:schemaLocation="
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+        http://www.springframework.org/schema/cloud/aws/messaging http://www.springframework.org/schema/cloud/spring-cloud-aws-messaging.xsd
+        http://www.springframework.org/schema/cloud/aws/context http://www.springframework.org/schema/cloud/spring-cloud-aws-context.xsd">
 
-    <context:component-scan base-package="pl.ene.awsmsgjmsplayground.sqs"></context:component-scan>
+    <context:component-scan base-package="pl.ene.awsmsgjmsplayground"></context:component-scan>
 
-    <bean id="credentialsProviderBean" class="com.amazonaws.auth.DefaultAWSCredentialsProviderChain"/>
+    <bean id="credentialsProviderBean" class="com.amazonaws.auth.DefaultAWSCredentialsProviderChain"  primary="true" />
+    <bean id="proxyClientConfiguration" class="com.amazonaws.ClientConfiguration">
 
+        <!--<property name="proxyHost" value="vmhost" />-->
+        <!--<property name="proxyPort" value="8080" />-->
+        <!--<property name="protocol">-->
+            <!--<value type="com.amazonaws.Protocol">HTTP</value>-->
+        <!--</property>-->
+
+    </bean>
 
     <bean id="connectionFactoryBuilder" class="com.amazon.sqs.javamessaging.SQSConnectionFactory$Builder">
         <property name="regionName" value="eu-west-1"/>
         <property name="numberOfMessagesToPrefetch" value="5"/>
         <property name="awsCredentialsProvider" ref="credentialsProviderBean"/>
+        <property name="clientConfiguration" ref="proxyClientConfiguration" />
     </bean>
 
     <bean id="connectionFactory" class="com.amazon.sqs.javamessaging.SQSConnectionFactory"
           factory-bean="connectionFactoryBuilder"
-          factory-method="build"/>
+          factory-method="build">
+    </bean>
 
     <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
         <property name="connectionFactory" ref="connectionFactory"/>
@@ -31,21 +45,54 @@
     </bean>
 
     <!-- Listeners-->
+    <!-- https://aws.amazon.com/blogs/developer/using-amazon-sqs-with-spring-boot-and-spring-jms/ but not needed so far-->
+    <!--<bean id="listenerContainerFactory" class="org.springframework.jms.config.DefaultJmsListenerContainerFactory">-->
+        <!--<property name="connectionFactory" ref="connectionFactory" />-->
+        <!--<property name="sessionAcknowledgeMode" value="#{T(javax.jms.Session).CLIENT_ACKNOWLEDGE}"/>-->
+    <!--</bean>-->
 
+    <!-- moved to annotations
     <bean id="amazonMessageListener" class="pl.ene.awsmsgjmsplayground.sqs.SpringMessageDrivenBean" />
+    -->
 
     <bean id="messageListener" class="org.springframework.jms.listener.adapter.MessageListenerAdapter">
-        <property name="delegate" ref="amazonMessageListener"/>
+        <property name="delegate" ref="orderConsumer"/>
         <property name="defaultListenerMethod" value="onMessage"/>
         <property name="messageConverter">
             <null/>
         </property>
     </bean>
 
-    <bean id="jmsContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
-        <property name="connectionFactory" ref="connectionFactory"/>
+    <!--<bean name="orderMessageConverter" class="org.springframework.messaging.converter.MappingJackson2MessageConverter">-->
+    <!--</bean>-->
+
+
+    <bean id="jmsContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer" > <!-- factory-bean="listenerContainerFactory" factory-method="createContainerInstance" -->
+        <property name="connectionFactory" ref="connectionFactory" />
         <property name="destinationName" ref="queueName" />
         <property name="messageListener" ref="messageListener" />
+        <!--cause: SQSSession does not support transacted-->
+        <!--<property name="sessionTransacted" value="true" />-->
+        <!-- Below works ok -->
+        <property name="sessionAcknowledgeMode" value="#{T(javax.jms.Session).CLIENT_ACKNOWLEDGE}"/>
+
     </bean>
 
+    <bean id="jmsTransactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="connectionFactory"/>
+    </bean>
+
+    <!-- Simple notification service configuration START-->
+
+    <!--
+    <aws-messaging:notification-messaging-template id="notificationMessagingTemplate" />
+    -->
+
+    <bean name="orderMessagingTemplate" class="org.springframework.cloud.aws.messaging.core.NotificationMessagingTemplate" >
+        <constructor-arg name="amazonSns" ref="amazonSNS"></constructor-arg>
+        <property name="defaultDestinationName" value="TestEne"/>
+        <!--<property name="messageConverter" ref="orderMassageConverter"/>-->
+     </bean>
+
+    <!-- Simple notification service configuration END-->
 </beans>
