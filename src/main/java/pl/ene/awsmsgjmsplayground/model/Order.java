@@ -10,6 +10,7 @@ public class Order {
     private Integer orderId;
     private String orderState;
     private Date date;
+    private String content;
 
     public Order() {
     }
@@ -19,6 +20,7 @@ public class Order {
         this.orderId = orderId;
         this.orderState = orderState;
         this.date = date;
+
     }
 
     public Integer getOrderId() {
@@ -45,12 +47,21 @@ public class Order {
         this.date = date;
     }
 
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
     @Override
     public String toString() {
         return "Order{" +
                 "orderId=" + orderId +
                 ", orderState='" + orderState + '\'' +
                 ", date=" + date +
+                ", content=" + content +
                 '}';
     }
 }

@@ -18,12 +18,6 @@ import javax.jms.Message;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
-//@Component
-//public class OrderMassageConverter extends  MappingJackson2MessageConverter {
-//
-//
-//
-//}
 
 @Component
 public class OrderMassageConverter extends MappingJackson2MessageConverter {
