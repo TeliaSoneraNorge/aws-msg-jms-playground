@@ -81,6 +81,11 @@
 			<artifactId>spring-cloud-aws-autoconfigure</artifactId>
 			<version>${spring-cloud-version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>amazon-sqs-java-extended-client-lib</artifactId>
+			<version>1.0.1</version>
+		</dependency>
 
 	</dependencies>
 
